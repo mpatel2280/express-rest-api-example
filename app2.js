@@ -1,5 +1,6 @@
 const express = require('express');
 const { User } = require('./models');
+const excelJS = require("exceljs");
 const app = express();
 const port = 3000;
 
@@ -21,6 +22,33 @@ app.get('/users', async (req, res) => {
   try {
     const users = await User.findAll();
     res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+
+app.get('/downloadUsers', async (req, res) => {
+  try {
+    const users = await User.findAll();
+    const workbook = new excelJS.Workbook(); 
+    const worksheet = workbook.addWorksheet("User");
+
+    // Define columns in the worksheet 
+    worksheet.columns = [ 
+        { header: "Name", key: "name", width: 15 }, 
+        { header: "Email", key: "email", width: 25 }, 
+    ];
+
+    // Add data to the worksheet 
+    users.forEach(user => { worksheet.addRow(user); });
+
+    // Set up the response headers 
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); res.setHeader("Content-Disposition", "attachment; filename=" + "users.xlsx");
+
+    // Write the workbook to the response object 
+    workbook.xlsx.write(res).then(() => res.end());
+
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch users' });
   }
